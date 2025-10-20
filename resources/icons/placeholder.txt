@@ -1,0 +1,19 @@
+占位符文件
+
+请将以下图标文件放置在此目录：
+- connect.png - 连接图标
+- disconnect.png - 断开连接图标
+- video-placeholder.png - 视频占位符图标
+
+图标建议尺寸：64x64 像素
+格式：PNG（支持透明背景）
+
+您可以使用任何图标库，例如：
+- Material Design Icons
+- Font Awesome
+- Feather Icons
+
+或者创建自己的图标。
+
+临时方案：
+在实际图标文件准备好之前，应用程序会使用文本替代图标。

@@ -1,0 +1,29 @@
+<RCC>
+    <qresource prefix="/">
+        <!-- QML 文件 -->
+        <file>qml/main.qml</file>
+        <file>qml/components/CustomToolBar.qml</file>
+        <file>qml/components/VideoDisplay.qml</file>
+        <file>qml/components/MessageConsole.qml</file>
+        <file>qml/components/ConnectionDialog.qml</file>
+
+        <!-- 图标文件 -->
+        <file>resources/icons/connect.png</file>
+        <file>resources/icons/disconnect.png</file>
+        <file>resources/icons/video-placeholder.png</file>
+        <file>resources/icons/video-placeholder-large.png</file>
+        <file>resources/icons/record.png</file>
+        <file>resources/icons/stop.png</file>
+        <file>resources/icons/screenshot.png</file>
+        <file>resources/icons/settings.png</file>
+        <file>resources/icons/app-icon.png</file>
+        <file>resources/icons/app-icon-256.png</file>
+        <file>resources/icons/app-icon-128.png</file>
+        <file>resources/icons/app-icon-64.png</file>
+        <file>resources/icons/app-icon-32.png</file>
+        <file>resources/icons/app-icon-16.png</file>
+
+        <!-- 图片资源 -->
+        <!-- 可以在这里添加其他图片资源 -->
+    </qresource>
+</RCC>
