@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QDateTime>
 
 /**
  * @brief 连接管理类
@@ -16,6 +17,8 @@ class ConnectionManager : public QObject
     Q_PROPERTY(QString deviceAddress READ deviceAddress WRITE setDeviceAddress NOTIFY deviceAddressChanged)
     Q_PROPERTY(int connectionType READ connectionType WRITE setConnectionType NOTIFY connectionTypeChanged)
     Q_PROPERTY(QStringList availableCameras READ availableCameras NOTIFY availableCamerasChanged)
+    Q_PROPERTY(QString connectionTime READ connectionTime NOTIFY connectionTimeChanged)
+    Q_PROPERTY(QString connectionStatus READ connectionStatus NOTIFY connectionStatusTextChanged)
 
 public:
     enum ConnectionType {
@@ -40,6 +43,8 @@ public:
     QString deviceAddress() const { return m_deviceAddress; }
     int connectionType() const { return m_connectionType; }
     QStringList availableCameras() const { return m_availableCameras; }
+    QString connectionTime() const;
+    QString connectionStatus() const { return m_connectionStatus; }
 
     void setDeviceAddress(const QString &address);
     void setConnectionType(int type);
@@ -55,6 +60,8 @@ signals:
     void deviceAddressChanged();
     void connectionTypeChanged();
     void availableCamerasChanged();
+    void connectionTimeChanged();
+    void connectionStatusTextChanged();
     void dataReceived(const QString &data);
     void errorOccurred(const QString &error);
     void connectionStatusChanged(const QString &status);
@@ -64,6 +71,8 @@ private:
     QString m_deviceAddress;
     int m_connectionType;
     QStringList m_availableCameras;
+    QDateTime m_connectionStartTime;
+    QString m_connectionStatus;
 
     void processReceivedData(const QByteArray &data);
     void enumerateCameras();

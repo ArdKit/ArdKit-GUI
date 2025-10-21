@@ -1,6 +1,19 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(ArdKit-GUI VERSION 1.0.0 LANGUAGES CXX)
+# 获取版本号
+execute_process(
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/version.sh get
+    OUTPUT_VARIABLE ARDKIT_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# 解析版本号
+string(REPLACE "." ";" VERSION_LIST ${ARDKIT_VERSION})
+list(GET VERSION_LIST 0 ARDKIT_VERSION_MAJOR)
+list(GET VERSION_LIST 1 ARDKIT_VERSION_MINOR)
+list(GET VERSION_LIST 2 ARDKIT_VERSION_BUILD)
+
+project(ArdKit-GUI VERSION ${ARDKIT_VERSION} LANGUAGES CXX)
 
 # 防止在源码目录中构建
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
@@ -38,6 +51,53 @@ if (NOT Qt6_FOUND)
     find_package(Qt5 5.15 COMPONENTS Core Gui Quick Multimedia REQUIRED)
 endif()
 
+# 查找 FFmpeg 库
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(FFMPEG REQUIRED
+    libavcodec
+    libavformat
+    libavutil
+    libswscale
+    libswresample
+)
+
+# 添加 FFmpeg 包含目录
+include_directories(${FFMPEG_INCLUDE_DIRS})
+
+# 生成版本头文件
+string(TIMESTAMP ARDKIT_BUILD_DATE "%Y-%m-%d %H:%M:%S")
+
+# 每次构建增加版本号
+execute_process(
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/version.sh build
+    OUTPUT_VARIABLE ARDKIT_VERSION_NEW
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# 重新解析版本号
+string(REPLACE "." ";" VERSION_LIST ${ARDKIT_VERSION_NEW})
+list(GET VERSION_LIST 0 ARDKIT_VERSION_MAJOR)
+list(GET VERSION_LIST 1 ARDKIT_VERSION_MINOR)
+list(GET VERSION_LIST 2 ARDKIT_VERSION_BUILD)
+set(ARDKIT_VERSION ${ARDKIT_VERSION_NEW})
+
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/version.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/version.h
+    @ONLY
+)
+
+# 添加生成的头文件目录
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+message(STATUS "========================================")
+message(STATUS "ArdKit-GUI Configuration")
+message(STATUS "========================================")
+message(STATUS "Version: ${ARDKIT_VERSION}")
+message(STATUS "Build date: ${ARDKIT_BUILD_DATE}")
+message(STATUS "Qt version: ${Qt${QT_VERSION_MAJOR}_VERSION}")
+message(STATUS "========================================")
+
 # 源文件
 set(PROJECT_SOURCES
     src/main.cpp
@@ -49,6 +109,10 @@ set(PROJECT_SOURCES
     src/configmanager.cpp
     src/messagelogger.h
     src/messagelogger.cpp
+    src/videodecoder.h
+    src/videodecoder.cpp
+    src/videorenderer.h
+    src/videorenderer.cpp
 )
 
 # 资源文件
@@ -79,13 +143,14 @@ else()
     )
 endif()
 
-# 链接 Qt 库
+# 链接 Qt 库和 FFmpeg 库
 if(Qt6_FOUND)
     target_link_libraries(ArdKit-GUI PRIVATE
         Qt6::Core
         Qt6::Gui
         Qt6::Quick
         Qt6::Multimedia
+        ${FFMPEG_LIBRARIES}
     )
 else()
     target_link_libraries(ArdKit-GUI PRIVATE
@@ -93,8 +158,12 @@ else()
         Qt5::Gui
         Qt5::Quick
         Qt5::Multimedia
+        ${FFMPEG_LIBRARIES}
     )
 endif()
+
+# 添加 FFmpeg 库目录
+target_link_directories(ArdKit-GUI PRIVATE ${FFMPEG_LIBRARY_DIRS})
 
 # 平台特定设置
 if(WIN32)

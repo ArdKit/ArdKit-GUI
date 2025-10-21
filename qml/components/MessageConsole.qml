@@ -251,42 +251,110 @@ Rectangle {
                     }
                 }
 
-                // 底部信息栏
+                // 底部状态栏
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 25
                     color: "#2d2d2d"
+                    border.color: "#3d3d3d"
+                    border.width: 1
 
                     RowLayout {
                         anchors.fill: parent
                         anchors.leftMargin: 10
                         anchors.rightMargin: 10
-                        spacing: 10
+                        spacing: 15
 
+                        // 连接状态指示器
+                        Rectangle {
+                            width: 8
+                            height: 8
+                            radius: 4
+                            color: connectionManager.isConnected ? "#4CAF50" : "#666666"
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
+                        // 连接状态文本
                         Label {
-                            text: "最大行数: " + messageLogger.maxLines
+                            text: connectionManager.connectionStatus
+                            color: connectionManager.isConnected ? "#4CAF50" : "#888888"
+                            font.pixelSize: 10
+                            font.bold: true
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
+                        // 分隔符
+                        Rectangle {
+                            width: 1
+                            height: 16
+                            color: "#555555"
+                            visible: connectionManager.isConnected
+                        }
+
+                        // 连接时长
+                        Label {
+                            id: connectionTimeLabel
+                            text: "连接时长: " + connectionManager.connectionTime
                             color: "#888888"
                             font.pixelSize: 10
+                            visible: connectionManager.isConnected
+                            Layout.alignment: Qt.AlignVCenter
                         }
 
                         Item {
                             Layout.fillWidth: true
                         }
 
+                        // 分辨率
                         Label {
-                            id: timeLabel
-                            text: Qt.formatDateTime(new Date(), "yyyy-MM-dd HH:mm:ss")
-                            color: "#888888"
+                            text: videoHandler ? (videoHandler.videoSize.width + "x" + videoHandler.videoSize.height) : "0x0"
+                            color: videoHandler && videoHandler.isPlaying ? "#4CAF50" : "#666666"
                             font.pixelSize: 10
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
+                        // 分隔符
+                        Label {
+                            text: "|"
+                            color: "#555555"
+                            font.pixelSize: 10
+                        }
+
+                        // 帧率
+                        Label {
+                            text: videoHandler ? (videoHandler.frameRate.toFixed(1) + " fps") : "0.0 fps"
+                            color: videoHandler && videoHandler.isPlaying ? "#4CAF50" : "#666666"
+                            font.pixelSize: 10
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
+                        // 分隔符
+                        Label {
+                            text: "|"
+                            color: "#555555"
+                            font.pixelSize: 10
+                        }
+
+                        // 码流
+                        Label {
+                            text: videoHandler ? formatBitrate(videoHandler.bitrate) : "0 Kbps"
+                            color: videoHandler && videoHandler.isPlaying ? "#4CAF50" : "#666666"
+                            font.pixelSize: 10
+                            Layout.alignment: Qt.AlignVCenter
                         }
                     }
 
-                    // 定时器更新时间
+                    // 定时器更新连接时长
                     Timer {
                         interval: 1000
                         running: true
                         repeat: true
-                        onTriggered: timeLabel.text = Qt.formatDateTime(new Date(), "yyyy-MM-dd HH:mm:ss")
+                        onTriggered: {
+                            // 强制刷新连接时长显示
+                            if (connectionManager.isConnected) {
+                                connectionTimeLabel.text = "连接时长: " + connectionManager.connectionTime
+                            }
+                        }
                     }
                 }
             }
@@ -448,6 +516,17 @@ Rectangle {
                     message: "收到消息: " + message + "\n(Agent功能待实现)"
                 })
             })
+        }
+    }
+
+    // 格式化比特率显示
+    function formatBitrate(bps) {
+        if (bps >= 1000000) {
+            return (bps / 1000000).toFixed(2) + " Mbps"
+        } else if (bps >= 1000) {
+            return (bps / 1000).toFixed(0) + " Kbps"
+        } else {
+            return bps + " bps"
         }
     }
 }

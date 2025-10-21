@@ -13,11 +13,10 @@ Window {
     modality: Qt.ApplicationModal
     flags: Qt.Dialog | Qt.FramelessWindowHint
     title: "连接到设备"
-    color: "#ffffff"
 
-    // 对外暴露的属性
-    property var connectionManager: null
-    property var configManager: null
+    // 从外部传入的管理器对象
+    property var connMgr: null
+    property var cfgMgr: null
 
     signal accepted()
     signal rejected()
@@ -28,9 +27,9 @@ Window {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        height: 35
-        color: "#f0f0f0"
-        border.color: "#d0d0d0"
+        height: 40
+        color: "#2d2d2d"
+        border.color: "#1a1a1a"
         border.width: 1
 
         MouseArea {
@@ -54,19 +53,33 @@ Window {
         Label {
             anchors.centerIn: parent
             text: root.title
-            font.pixelSize: 13
+            font.pixelSize: 14
             font.bold: true
+            color: "#ffffff"
         }
 
         // 关闭按钮
         Button {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            anchors.rightMargin: 5
-            width: 25
-            height: 25
+            anchors.rightMargin: 8
+            width: 30
+            height: 30
             text: "×"
-            font.pixelSize: 16
+            font.pixelSize: 18
+
+            background: Rectangle {
+                color: parent.hovered ? "#ff4444" : "transparent"
+                radius: 4
+            }
+
+            contentItem: Label {
+                text: parent.text
+                color: parent.hovered ? "#ffffff" : "#cccccc"
+                font.pixelSize: 18
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
 
             onClicked: {
                 root.rejected()
@@ -98,12 +111,12 @@ Window {
                 id: connectionTypeCombo
                 Layout.fillWidth: true
                 model: ["网络相机", "网络VTX", "本地相机", "UVC相机", "USB VTX"]
-                currentIndex: connectionManager ? connectionManager.connectionType : 0
+                currentIndex: connMgr ? connMgr.connectionType : 0
 
                 onCurrentIndexChanged: {
                     // 本地相机、UVC相机需要刷新摄像头列表
-                    if (connectionManager && (currentIndex === 2 || currentIndex === 3)) {
-                        connectionManager.refreshCameraList()
+                    if (connMgr && (currentIndex === 2 || currentIndex === 3)) {
+                        connMgr.refreshCameraList()
                     }
                 }
             }
@@ -146,8 +159,8 @@ Window {
                     id: deviceAddressCombo
                     Layout.fillWidth: true
                     editable: true
-                    model: configManager ? configManager.networkAddressHistory : []
-                    editText: configManager ? (configManager.lastDeviceAddress || "rtsp://192.168.1.100:8554/stream") : ""
+                    model: cfgMgr ? cfgMgr.networkAddressHistory : []
+                    editText: cfgMgr ? (cfgMgr.lastDeviceAddress || "rtsp://192.168.1.100:8554/stream") : ""
 
                     property string placeholderText: networkProtocolCombo.currentIndex === 0 ?
                         "例如: rtsp://192.168.1.100:8554/stream" :
@@ -182,7 +195,7 @@ Window {
                     id: vtxAddressCombo
                     Layout.fillWidth: true
                     editable: true
-                    model: configManager ? configManager.networkAddressHistory : []
+                    model: cfgMgr ? cfgMgr.networkAddressHistory : []
                     editText: "vtx://192.168.1.100:5600"
                 }
             }
@@ -213,14 +226,14 @@ Window {
                 ComboBox {
                     id: localCameraCombo
                     Layout.fillWidth: true
-                    model: connectionManager ? connectionManager.availableCameras : []
+                    model: connMgr ? connMgr.availableCameras : []
                 }
 
                 Button {
                     text: "刷新"
                     onClicked: {
-                        if (connectionManager) {
-                            connectionManager.refreshCameraList()
+                        if (connMgr) {
+                            connMgr.refreshCameraList()
                         }
                     }
                 }
@@ -245,14 +258,14 @@ Window {
                 ComboBox {
                     id: uvcCameraCombo
                     Layout.fillWidth: true
-                    model: connectionManager ? connectionManager.availableCameras : []
+                    model: connMgr ? connMgr.availableCameras : []
                 }
 
                 Button {
                     text: "刷新"
                     onClicked: {
-                        if (connectionManager) {
-                            connectionManager.refreshCameraList()
+                        if (connMgr) {
+                            connMgr.refreshCameraList()
                         }
                     }
                 }
@@ -307,7 +320,7 @@ Window {
             Layout.preferredWidth: 80
 
             onClicked: {
-                if (!connectionManager || !configManager) {
+                if (!connMgr || !cfgMgr) {
                     return
                 }
 
@@ -315,42 +328,42 @@ Window {
                     // 网络相机
                     var address = deviceAddressCombo.editText
                     if (address) {
-                        connectionManager.deviceAddress = address
-                        connectionManager.connectionType = 0
-                        configManager.lastDeviceAddress = address
-                        configManager.addNetworkAddress(address)
-                        connectionManager.connectToDevice()
+                        connMgr.deviceAddress = address
+                        connMgr.connectionType = 0
+                        cfgMgr.lastDeviceAddress = address
+                        cfgMgr.addNetworkAddress(address)
+                        connMgr.connectToDevice()
                     }
                 } else if (connectionTypeCombo.currentIndex === 1) {
                     // 网络VTX
                     var vtxAddress = vtxAddressCombo.editText
                     if (vtxAddress) {
-                        connectionManager.deviceAddress = vtxAddress
-                        connectionManager.connectionType = 1
-                        configManager.addNetworkAddress(vtxAddress)
-                        connectionManager.connectToDevice()
+                        connMgr.deviceAddress = vtxAddress
+                        connMgr.connectionType = 1
+                        cfgMgr.addNetworkAddress(vtxAddress)
+                        connMgr.connectToDevice()
                     }
                 } else if (connectionTypeCombo.currentIndex === 2) {
                     // 本地相机
                     if (localCameraCombo.currentIndex >= 0) {
-                        connectionManager.deviceAddress = localCameraCombo.currentText
-                        connectionManager.connectionType = 2
-                        connectionManager.connectToDevice()
+                        connMgr.deviceAddress = localCameraCombo.currentText
+                        connMgr.connectionType = 2
+                        connMgr.connectToDevice()
                     }
                 } else if (connectionTypeCombo.currentIndex === 3) {
                     // UVC 相机
                     if (uvcCameraCombo.currentIndex >= 0) {
-                        connectionManager.deviceAddress = uvcCameraCombo.currentText
-                        connectionManager.connectionType = 3
-                        connectionManager.connectToDevice()
+                        connMgr.deviceAddress = uvcCameraCombo.currentText
+                        connMgr.connectionType = 3
+                        connMgr.connectToDevice()
                     }
                 } else if (connectionTypeCombo.currentIndex === 4) {
                     // USB VTX
                     var usbAddress = usbVtxAddressField.text
                     if (usbAddress) {
-                        connectionManager.deviceAddress = usbAddress
-                        connectionManager.connectionType = 4
-                        connectionManager.connectToDevice()
+                        connMgr.deviceAddress = usbAddress
+                        connMgr.connectionType = 4
+                        connMgr.connectToDevice()
                     }
                 }
 
@@ -371,10 +384,10 @@ Window {
     }
 
     onVisibleChanged: {
-        if (visible && connectionManager) {
+        if (visible && connMgr) {
             // 对话框打开时刷新摄像头列表
             if (connectionTypeCombo.currentIndex === 2 || connectionTypeCombo.currentIndex === 3) {
-                connectionManager.refreshCameraList()
+                connMgr.refreshCameraList()
             }
         }
     }

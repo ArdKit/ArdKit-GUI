@@ -2,19 +2,20 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
+import QtQuick.Dialogs
 import "components"
 
 ApplicationWindow {
     id: mainWindow
     visible: true
-    width: 600
-    height: 800
-    minimumWidth: 500
-    minimumHeight: 600
+    width: 800
+    height: 1000
+    minimumWidth: 600
+    minimumHeight: 800
     title: "ArdKit-GUI - 机器人与无人机控制平台"
 
     // 计算视频区域的尺寸（根据宽高比）
-    property real videoAspectRatio: configManager.videoAspectRatio === 0 ? 16/9 : 4/3
+    property real videoAspectRatio: 16/9
     property bool isConnected: connectionManager.isConnected
     property bool isRecording: videoHandler.isRecording
 
@@ -50,16 +51,14 @@ ApplicationWindow {
         Menu {
             title: "视频(&V)"
             MenuItem {
-                text: "16:9"
-                checkable: true
-                checked: configManager.videoAspectRatio === 0
-                onTriggered: configManager.videoAspectRatio = 0
+                text: "录像"
+                enabled: isConnected && !isRecording
+                onTriggered: recordDialog.open()
             }
             MenuItem {
-                text: "4:3"
-                checkable: true
-                checked: configManager.videoAspectRatio === 1
-                onTriggered: configManager.videoAspectRatio = 1
+                text: "截图"
+                enabled: isConnected
+                onTriggered: screenshotDialog.open()
             }
         }
 
@@ -77,6 +76,13 @@ ApplicationWindow {
         anchors.fill: parent
         spacing: 0
 
+        // 进度条（标题栏下方）- LIVE模式不显示进度，仅作为分隔线
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 2
+            color: "#e0e0e0"
+        }
+
         // 视频显示区域（可拖动调整大小）
         SplitView {
             Layout.fillWidth: true
@@ -86,7 +92,9 @@ ApplicationWindow {
             VideoDisplay {
                 id: videoDisplay
                 SplitView.fillWidth: true
-                SplitView.preferredHeight: parent.width / videoAspectRatio
+                SplitView.preferredHeight: 450  // 800 / 16 * 9 = 450
+                SplitView.minimumHeight: 300
+                SplitView.maximumHeight: 600
                 aspectRatio: videoAspectRatio
                 isPlaying: videoHandler.isPlaying
             }
@@ -126,8 +134,8 @@ ApplicationWindow {
                         screenshotDialog.open()
                     }
 
-                    onConfigClicked: {
-                        configDialog.open()
+                    onPlaybackClicked: {
+                        playbackFileDialog.open()
                     }
                 }
 
@@ -145,8 +153,8 @@ ApplicationWindow {
     // 连接对话框
     ConnectionDialog {
         id: connectionDialog
-        connectionManager: mainWindow.connectionManager
-        configManager: mainWindow.configManager
+        connMgr: connectionManager
+        cfgMgr: configManager
     }
 
     // 录像对话框
@@ -287,5 +295,32 @@ ApplicationWindow {
         }
 
         standardButtons: Dialog.Close
+    }
+
+    // 回放文件选择对话框
+    FileDialog {
+        id: playbackFileDialog
+        title: "选择要播放的视频文件"
+        nameFilters: ["视频文件 (*.mp4 *.avi *.mkv *.mov *.flv *.ts)", "所有文件 (*)"]
+        fileMode: FileDialog.OpenFile
+
+        onAccepted: {
+            var filePath = playbackFileDialog.selectedFile.toString()
+            // 移除 "file://" 前缀 (Qt 6)
+            if (filePath.startsWith("file://")) {
+                filePath = filePath.substring(7)
+            }
+
+            messageLogger.addInfoMessage("开始播放本地文件: " + filePath)
+
+            // 如果当前已连接，先断开
+            if (connectionManager.isConnected) {
+                connectionManager.disconnectFromDevice()
+            }
+
+            // 设置视频源并开始播放
+            videoHandler.setVideoSource(filePath)
+            videoHandler.startVideo()
+        }
     }
 }

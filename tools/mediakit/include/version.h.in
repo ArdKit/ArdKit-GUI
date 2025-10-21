@@ -1,0 +1,7 @@
+#ifndef VERSION_H
+#define VERSION_H
+
+#define MEDIAKIT_VERSION "@NEW_VERSION@"
+#define MEDIAKIT_BUILD_DATE "@BUILD_DATE@"
+
+#endif // VERSION_H

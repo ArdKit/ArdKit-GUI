@@ -4,7 +4,9 @@
 #include <QIcon>
 #include <QDebug>
 
+#include "version.h"
 #include "videohandler.h"
+#include "videorenderer.h"
 #include "connectionmanager.h"
 #include "configmanager.h"
 #include "messagelogger.h"
@@ -22,11 +24,15 @@ int main(int argc, char *argv[])
     app.setOrganizationName("ArdKit");
     app.setOrganizationDomain("ardkit.com");
     app.setApplicationName("ArdKit-GUI");
-    app.setApplicationVersion("1.0.0");
+    app.setApplicationVersion(ARDKIT_VERSION);
 
     // 设置应用程序图标
     app.setWindowIcon(QIcon(":/resources/icons/app-icon.png"));
 
+    qDebug() << "========================================";
+    qDebug() << "ArdKit-GUI v" << ARDKIT_VERSION;
+    qDebug() << "Build date:" << ARDKIT_BUILD_DATE;
+    qDebug() << "========================================";
     qDebug() << "Starting ArdKit-GUI...";
 
     // 创建后端对象
@@ -54,11 +60,45 @@ int main(int argc, char *argv[])
     QObject::connect(&connectionManager, &ConnectionManager::errorOccurred,
                      &messageLogger, &MessageLogger::addErrorMessage);
 
+    // 连接信号：视频流错误时自动断开连接
+    QObject::connect(&videoHandler, &VideoHandler::errorOccurred, [&](const QString &error) {
+        // 如果是流相关的严重错误，自动断开连接
+        if (error.contains("Failed to open video stream") ||
+            error.contains("Stream ended") ||
+            error.contains("connection lost", Qt::CaseInsensitive) ||
+            error.contains("Read frame error")) {
+            qWarning() << "Critical video error detected, disconnecting...";
+            if (connectionManager.isConnected()) {
+                connectionManager.disconnectFromDevice();
+            }
+        }
+    });
+
+    // 连接信号：当连接到设备时启动视频流
+    QObject::connect(&connectionManager, &ConnectionManager::isConnectedChanged, [&]() {
+        if (connectionManager.isConnected()) {
+            QString address = connectionManager.deviceAddress();
+            qDebug() << "Device connected, starting video from:" << address;
+            videoHandler.setVideoSource(address);
+            videoHandler.startVideo();
+
+            // 如果视频流未能启动，断开连接
+            if (!videoHandler.isPlaying()) {
+                qWarning() << "Video failed to start, disconnecting...";
+                connectionManager.disconnectFromDevice();
+            }
+        } else {
+            qDebug() << "Device disconnected, stopping video";
+            videoHandler.stopVideo();
+        }
+    });
+
     // 创建 QML 引擎
     QQmlApplicationEngine engine;
 
     // 注册 C++ 类型到 QML
     qmlRegisterType<VideoHandler>("ArdKitGUI", 1, 0, "VideoHandler");
+    qmlRegisterType<VideoRenderer>("ArdKitGUI", 1, 0, "VideoRenderer");
     qmlRegisterType<ConnectionManager>("ArdKitGUI", 1, 0, "ConnectionManager");
     qmlRegisterType<ConfigManager>("ArdKitGUI", 1, 0, "ConfigManager");
     qmlRegisterType<MessageLogger>("ArdKitGUI", 1, 0, "MessageLogger");
