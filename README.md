@@ -12,7 +12,7 @@ ArdKit-GUI 是一个跨平台的桌面应用程序，用于：
 
 ## 界面预览
 
-![ArdKit-GUI 主界面](docs/ardkit-gui.png)
+![ArdKit-GUI 主界面](docs/ardkit-gui.jpg)
 
 ## 功能特性
 
