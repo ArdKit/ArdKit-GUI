@@ -64,3 +64,15 @@ recording_*.avi
 screenshot_*.png
 screenshot_*.jpg
 log_*.txt
+
+# 测试视频文件（data目录）
+data/*.mp4
+data/*.avi
+data/*.mov
+data/*.mkv
+
+# MediaKit 构建文件
+tools/mediakit/build/
+
+# 生成的版本头文件
+version.h
